@@ -4,7 +4,8 @@ import requests
 from telegram import Update, InputFile
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
 
-TOKEN = "8089154180:AAELepXPZCD3B7fJI9rfszo_k2Y_dsdh_4A"
+# Token tomado desde variables de entorno (Render lo pide así)
+TOKEN = os.getenv("TOKEN")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
@@ -23,7 +24,7 @@ async def recibir_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
             titulo = info.get("title", "audio")
             thumbnail_url = info.get("thumbnail")
     except Exception:
-        await update.message.reply_text("❌ No pude obtener información del video.")
+        await update.message.reply_text("❌ No pude obtener la información del video.")
         return
 
     # Crear nombre de archivo seguro
@@ -39,7 +40,7 @@ async def recibir_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except:
         archivo_jpg = None
 
-    # Descargar audio
+    # Descargar audio y convertir
     ydl_opts = {
         "format": "bestaudio/best",
         "outtmpl": "temp_audio.%(ext)s",
@@ -54,11 +55,11 @@ async def recibir_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
         with yt_dlp.YoutubeDL(ydl_opts) as ydl:
             ydl.download([url])
 
-        # Renombrar archivo final
+        # Renombrar a nombre real
         if os.path.exists("temp_audio.mp3"):
             os.rename("temp_audio.mp3", archivo_mp3)
 
-        # Preparar archivo con nombre correcto
+        # Preparar archivo para enviar
         audio_file = InputFile(open(archivo_mp3, "rb"), filename=archivo_mp3)
 
         # Enviar con miniatura si existe
@@ -79,7 +80,8 @@ async def recibir_link(update: Update, context: ContextTypes.DEFAULT_TYPE):
         os.remove(archivo_mp3)
 
     except Exception as e:
-        await update.message.reply_text(f"❌ Error: {str(e)}")
+        await update.message.reply_text(f"❌ Error al procesar: {str(e)}")
+
 
 def main():
     app = ApplicationBuilder().token(TOKEN).build()
